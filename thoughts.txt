@@ -1,0 +1,3 @@
+use pypdf to get text
+then use gtts to get audio for text
+then maybe use whisper (gpt thing) to get a transcript with times
