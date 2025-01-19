@@ -1,4 +1,5 @@
 import assemblyai as aai
+import pysrt
 from apiKeys import AssemblyAIKey
 from PyPDF2 import PdfReader
 from gtts import gTTS
@@ -14,6 +15,7 @@ unedited_audio_file = "files/audio.mp3"
 sped_up_audio = "files/final.mp3"
 original_video = "files/minecraftParkour.mp4"
 srt_file = "files/subtitle.srt"
+final_video = "files/final.mp4"
 
 
 def extractText(file):
@@ -57,6 +59,52 @@ def format_subtitles(srt_file):
     return subtitles
 
 
+def combine_audio_and_shorten(audio_file, video_file, final_video_file):
+    video = VideoFileClip(video_file)
+    audio = AudioFileClip(audio_file)
+
+    final = video.subclipped(start_time=0, end_time=audio.duration)
+    final = final.with_audio(audio)
+    final.write_videofile(final_video_file, codec="libx264", fps=30)
+
+
+def time_to_seconds(time_obj):
+    return time_obj.hours * 3600 + time_obj.minutes * 60 + time_obj.seconds + time_obj.milliseconds/1000
+
+
+def make_subtitles(srt_file, video_file):
+    srt_subtitles = pysrt.open(srt_file)
+    subtitle_clips = []
+
+    for subtitle in srt_subtitles:
+        start_time = time_to_seconds(subtitle.start)
+        end_time = time_to_seconds(subtitle.end)
+        duration = start_time - end_time
+
+        video = VideoFileClip(video_file)
+        video_width, video_height = video.size
+
+        subtitle_clip = (
+            TextClip(subtitle.text,
+                     font_size=24,
+                     font='Ariel-Bold',
+                     color='white', stroke_color='black',
+                     stroke_width=1,
+                     size=(video_width*3/4, None),
+                     method='caption').set_start(start_time).set_duration(duration))
+        text_position = ('center', 'center')
+        subtitle_clips.append(subtitle_clip.with_position(text_position))
+
+    return subtitle_clips
+
+
+# MAKE A FINAL VIDEO PARAMETER IF IT DOESNT WORK TO COMBINE THE VIDEO ON ITSELF
+def add_subtitles_to_video(subtitle_clips, video_file):
+    video = VideoFileClip(video_file)
+    video = CompositeVideoClip([video] + subtitle_clips)
+    video.write_videofile(video_file)
+
+
 def timing_helper(timing):
     hr, min, sec = timing.split(":")
     secs, millis = sec.split(",")
@@ -75,7 +123,7 @@ def add_text_to_vid(video_file, audio_file, subtitles, output_file):
     subtitle_clips = []
 
     for start, end, subtitle in subtitles:
-        subtitle_clip = ((TextClip(text=subtitle, font_size=24, color='white',
+        subtitle_clip = ((TextClip(subtitle.text, font_size=24, color='white',
                                    stroke_color='black', stroke_width=1,
                                    font='Ariel-Bold'))
                          .set_position('center')
@@ -100,12 +148,14 @@ def main():
     print("generating transcript with AssemblyAI")
     generate_transcript(unedited_audio_file)
 
-    print("generating subtitles from the transcript")
-    subtitles = format_subtitles(srt_file)
+    print("shortening video and adding audio")
+    combine_audio_and_shorten(unedited_audio_file, original_video, final_video)
 
-    print("making video")
-    (add_text_to_vid(original_video, unedited_audio_file, subtitles,
-                     "files/final.mp4"))
+    print("generating subtitles from the transcript")
+    subtitle_clips = make_subtitles(srt_file, final_video)
+
+    print("Adding subtitles on top of the video")
+    add_subtitles_to_video(subtitle_clips, final_video)
 
     print("Done")
 

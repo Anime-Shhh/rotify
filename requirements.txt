@@ -2,6 +2,6 @@ PyPDF2
 gtts
 moviepy
 assemblyai
-librosa
+pysrt
 #if ur on linux, make sure u have ffmpeg
 #run this command: (this is for arch) sudo pacman -S ffmpeg
