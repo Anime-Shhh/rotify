@@ -3,13 +3,17 @@ from apiKeys import AssemblyAIKey
 from PyPDF2 import PdfReader
 from gtts import gTTS
 from moviepy import VideoFileClip, TextClip, CompositeVideoClip, AudioFileClip
+from moviepy.video.fx import Crop
 
 aai.settings.api_key = AssemblyAIKey
 
 # get text from File
 
 pdf_file = "files/random.pdf"
-audio_file = "files/audio.mp3"
+unedited_audio_file = "files/audio.mp3"
+sped_up_audio = "files/final.mp3"
+original_video = "files/minecraftParkour.mp4"
+srt_file = "files/subtitle.srt"
 
 
 def extractText(file):
@@ -29,7 +33,7 @@ def generate_audio(text, output_file):
 
 def generate_transcript(audio_file):
     transcript = aai.Transcriber().transcribe(audio_file)
-    subtitles = transcript.export_subtitles_srt(chars_per_caption=100)
+    subtitles = transcript.export_subtitles_srt(chars_per_caption=30)
 
     f = open("files/subtitle.srt", "a")
     f.write(subtitles)
@@ -46,11 +50,44 @@ def format_subtitles(srt_file):
         lines = chunk.split("\n")
         if len(lines) >= 3:  # ensure its valid 3 piece
             timing = [lines[1].split("-->")]
-            start = timing[0]
-            end = timing[1]
+            start = timing_helper(timing[0])
+            end = timing_helper(timing[1])
             subtitle = " ".join(lines[2:])
             subtitles.append(start, end, subtitle)
     return subtitles
+
+
+def timing_helper(timing):
+    hr, min, sec = timing.split(":")
+    secs, millis = sec.split(",")
+    timestamp = int(hr) * 3600 + int(min) * 60 + int(secs) + int(millis)/1000
+    return timestamp
+
+
+def add_text_to_vid(video_file, audio_file, subtitles, output_file):
+    video = VideoFileClip(video_file)
+    audio = AudioFileClip(audio_file)
+
+    video = video.subclipped(0, audio.duration)
+
+    video = video.with_audio(audio)
+
+    subtitle_clips = []
+
+    for start, end, subtitle in subtitles:
+        subtitle_clip = ((TextClip(text=subtitle, font_size=24, color='white',
+                                   stroke_color='black', stroke_width=1,
+                                   font='Ariel-Bold'))
+                         .set_position('center')
+                         .set_duration(end - start)
+                         .set_start(start))
+        subtitle_clips.append(subtitle_clip)
+
+    # combine clips
+    #
+    final_vid = CompositeVideoClip([video] + subtitle_clips)
+    # write the File
+    final_vid.write_videofile(output_file, codec="libx264", fps=30)
 
 
 def main():
@@ -58,10 +95,17 @@ def main():
     text = extractText(pdf_file)
 
     print("generating audio")
-    generate_audio(text, audio_file)
+    generate_audio(text, unedited_audio_file)
 
     print("generating transcript with AssemblyAI")
-    generate_transcript(audio_file)
+    generate_transcript(unedited_audio_file)
+
+    print("generating subtitles from the transcript")
+    subtitles = format_subtitles(srt_file)
+
+    print("making video")
+    (add_text_to_vid(original_video, unedited_audio_file, subtitles,
+                     "files/final.mp4"))
 
     print("Done")
 
