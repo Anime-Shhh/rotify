@@ -33,8 +33,8 @@ Ensure you have the following installed:
 ## Installation
 1. Clone this repository:
    ```bash
-   git clone https://github.com/your-username/pdf-to-video-converter.git
-   cd pdf-to-video-converter
+   git clone https://github.com/Anime-Shhh/rotify.git
+   cd rotify
    ```
 2. Set up a Python virtual environment (optional but recommended):
    ```bash
@@ -75,7 +75,7 @@ Ensure you have the following installed:
 
 ## My File Structure
 ```
-project/
+rotify/
 ├── files/
 │   ├── random.pdf            # Input PDF file
 │   ├── minecraftParkour.mp4  # Input video file
