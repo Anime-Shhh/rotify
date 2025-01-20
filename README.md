@@ -4,6 +4,8 @@ Disclaimer: This project is not aimed to automate the creation of short video fo
 
 Please do not use this code in order to create something similar for money-making purposes. Other than that, you are free to utilize this code, all I ask is that you give credits to me in the read me or in any other form in your project. 
 
+---
+
 This project is a Python-based tool that aims to convert text extracted from a PDF file into a video with accompanying audio narration and subtitles. It is designed to provide a seamless way to turn static PDF content into engaging, multimedia-rich output.
 
 ---
